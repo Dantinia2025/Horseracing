@@ -106,7 +106,7 @@ SELECT AVG (date_format(FROM_DAYS(DATEDIFF(NOW(),foaled)),'%Y') + 0) # 4.333 Yea
 is the Average age of the horses
 FROM horse;
 
-#Assignment 5 Problem 2.A.
+
 #This query will return the names of horses that have a jockey by the name of
 #Declan Cannon. First, we use the
 #DISTINCT function to find unique names of horses from the table horse. We utilize
@@ -119,7 +119,7 @@ WHERE h_ID IN (SELECT h_ID
 FROM horse_race
 WHERE jockey = "Declan Cannon");
 
-#Assignment 5 Problem 2.B.
+
 #This query is showing all horse names by utilizing the LEFT JOIN funtion by
 #joining horses and the subquery
 #where we are counting the number of time(s) a horse has gotten 1st place in a
@@ -139,7 +139,7 @@ GROUP BY h_id
 ON horse.h_id = wins.h_id
 ORDER BY wins.Number_of_Wins DESC, horse.h_name ASC;
 
-#Assignment 5 Problem 2.C.
+
 #This query starts with the innermost subquery grouping the horse racing table by
 #the jockey name and counting
 #how many times they appear. Then it selects the maximum number of races across all
@@ -159,3 +159,64 @@ FROM horse_race
 Group By jockey
 ) AS jockey_subquery
 );
+
+
+# This will create or replace a VIEW of h_id, jockey name, prizes (if any is won)
+#and the h_name from the tables horse_race and horse.
+CREATE OR REPLACE VIEW horse_jockey AS
+SELECT h_id, jockey, prize, h_name
+FROM horse_race JOIN horse using (h_id);
+
+
+#This query is returning the h_name(s) where the jockey is named "Declan Cannon".
+#Using a JOIN function I'm joing two tables that share h_id so I can access jockey.
+SELECT h_name
+FROM horse_race JOIN horse using (h_id)
+WHERE jockey = "Declan Cannon";
+
+
+# This query returns all horse names and their prize earnings.
+SELECT DISTINCT h_name, prize
+FROM horse_race LEFT join horse using (h_id);
+
+
+#This query returns the names of all horses that won prizes and the amount of prizes
+SELECT DISTINCT h_name, prize
+FROM horse_race JOIN horse using (h_id)
+WHERE prize
+ORDER BY h_name;
+
+
+# This query lists all the horses names and the dates in which they last raced
+SELECT DISTINCT h_name, r_date
+FROM horse_race JOIN horse using (h_id)
+JOIN race using (r_id)
+ORDER BY h_name;
+
+
+#This query alters the table horse by adding a constraint to the foaled attribute
+#This constraint checks if the dates of horses are foaled between '1990-12-31' and '2100-12-31'
+ALTER TABLE horse ADD CONSTRAINT foaled_parameter
+CHECK(foaled between '1990-12-31' and '2100-12-31');
+
+
+#This query alters the table horse and makes it so that gender can only be one of
+these values: foal, yearling, colt, gelding, mare, filly, stallion
+UPDATE horse SET gender = NULL WHERE h_id=12;
+ALTER TABLE horse ADD CHECK(gender in ('foal','yearling','colt','gelding','mare',
+'filly','stallion'));
+SELECT * FROM horse;
+
+
+#This query is trying to enter a date that is not within the constraint set.
+#Error Code: 3819. Check constraint 'foaled_parameter' is violated.
+INSERT INTO horse VALUES
+(7, "Rapidash", "mare", "Squishy", "Weirdo", "active", "Orange", "USA", '2121-03-
+04');
+
+#This query is trying to enter something that is not within the constraints set by
+gender. Error Code: 3819. Check constraint 'horse_chk_1' is violated.
+INSERT INTO horse VALUES
+(7, "Galarian Rapidash", "pokemon", "Squishy", "Maam", "active", "White", "USA",
+'2021-03-04');
+
