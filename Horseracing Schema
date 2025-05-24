@@ -1,0 +1,161 @@
+CREATE SCHEMA IF NOT EXISTS horse_racing;
+USE horse_racing;
+
+CREATE TABLE IF NOT EXISTS horse(
+h_ID int PRIMARY KEY,
+h_name varchar(50),
+gender varchar(10), # gender: foal, yearling, colt, gelding, mare, filly, stallion
+sire varchar(50), # father of a horse
+dam varchar(50), # mother of a horse
+h_status varchar(50), # retired or active
+color varchar(50), # color of a horse
+country varchar(50),
+foaled DATE
+);
+
+CREATE TABLE IF NOT EXISTS race(
+r_ID int PRIMARY KEY,
+r_name varchar(50),
+track varchar(50),
+r_date DATE
+);
+
+CREATE TABLE IF NOT EXISTS horse_race(
+h_ID int,
+r_ID int,
+jockey varchar(50),
+PRIMARY KEY(h_id, r_id),
+FOREIGN KEY(h_id) references horse(h_id),
+FOREIGN KEY(r_id) references race(r_id)
+);
+
+INSERT INTO horse VALUES
+(1, "Mystik Dan", "colt", "Goldencents", "Maam", "active", "bay", "USA", '2021-03-
+04'),
+(2, "Going To Vegas","filly", "Goldencents", "Hard-to-resist","retired",
+"bay","USA",'2017-04-19'),
+(3, "Agoo","gelding","Munnings"," Grandacious","active","bay","USA", '2021-04-01'),
+(4,"Miracle On Central","gelding","Karakontie "," Charcuterie",
+"active","bay","USA", NULL);
+
+INSERT INTO race VALUES
+(21,"Maiden Special Weight","Keeneland",'2023-10-22'),
+(22,"Smarty Jones Stakes", "Oaklawn Park",'2024-01-01'),
+(23,"Maiden Optional Claiming", "Fair Grounds",'2025-02-07');
+
+INSERT INTO horse_race VALUES
+(1,21,"Brian Hernandez Jr."),
+(3,21,"Declan Cannon"),
+(1,22,"Julien Leparoux"),
+(4,23,"Declan Cannon");
+
+#First we start by altering the table called horse_race by adding an attribute
+#called "finish" this is an int.
+ALTER TABLE horse_race
+ADD finish int;
+
+#Using the UPDATE function, we're updating the horse_race table. We're setting the
+#new "finish" attribute to 2 and
+#the r_ID to 21 based off of the data given in assignment #4, Problem 1. B. It's
+#alright to update 2 values here
+#because we know that the second will get overwritten in the next query.
+UPDATE horse_race
+SET finish = 2
+WHERE r_ID = 21;
+
+#Again we're filling out the attribute "finish" with the data provided.
+UPDATE horse_race
+SET finish = 1
+WHERE h_ID = 3;
+
+#Again we're filling out the attribute "finish" with the data provided.
+UPDATE horse_race
+SET finish = 5
+WHERE r_ID = 22;
+
+#Again we're filling out the attribute "finish" with the data provided.
+UPDATE horse_race
+SET finish = 3
+WHERE h_ID = 4;
+
+#We are now finding the name and color of horse(s) is retired. We're selecting the
+#name of the horse, finding
+#their color from the table called horse, and returning only those that have the
+status "retired"
+SELECT h_name, color
+FROM horse
+WHERE h_status = "retired";
+
+#Here we are returning each horse's name, and their ages in ascending order. First,
+#we select the horse's name,
+#then we're converting the date of birth into what we're calling "Age" in years.
+#We're accessing the table horse,
+#and then returning each horse's name and their age in ascending order.
+SELECT h_name, date_format(FROM_DAYS(DATEDIFF(NOW(),foaled)),'%Y') + 0 AS Age
+FROM horse
+ORDER BY Age ASC;
+
+#Here we're using the DISTINCT function to select and return each unique jockey
+#that's in the db
+SELECT DISTINCT jockey FROM horse_race; #There are 3 distinct jockey's found in the db
+
+#Finally, we're taking the average of all the horses ages. We use the average
+#function on the function we
+#used prior to calculate age from the table called horse.
+SELECT AVG (date_format(FROM_DAYS(DATEDIFF(NOW(),foaled)),'%Y') + 0) # 4.333 Years
+is the Average age of the horses
+FROM horse;
+
+#Assignment 5 Problem 2.A.
+#This query will return the names of horses that have a jockey by the name of
+#Declan Cannon. First, we use the
+#DISTINCT function to find unique names of horses from the table horse. We utilize
+#a nested query using the
+#WHERE function to return horse_ID's from the table horse_race, where the jockey is
+named "Declan Cannon".
+SELECT DISTINCT h_name
+FROM horse
+WHERE h_ID IN (SELECT h_ID
+FROM horse_race
+WHERE jockey = "Declan Cannon");
+
+#Assignment 5 Problem 2.B.
+#This query is showing all horse names by utilizing the LEFT JOIN funtion by
+#joining horses and the subquery
+#where we are counting the number of time(s) a horse has gotten 1st place in a
+#race. The horses that did NOT
+#place in first place return a NULL value. We can see that AGOO has gotten 1st
+#place once. The other horses
+#have not gotten 1st place in any race.
+SELECT horse.h_name, wins.Number_of_Wins
+FROM horse
+LEFT JOIN
+(
+SELECT h_id, COUNT(*) AS Number_of_Wins
+FROM horse_race
+WHERE finish = 1
+GROUP BY h_id
+) AS wins
+ON horse.h_id = wins.h_id
+ORDER BY wins.Number_of_Wins DESC, horse.h_name ASC;
+
+#Assignment 5 Problem 2.C.
+#This query starts with the innermost subquery grouping the horse racing table by
+#the jockey name and counting
+#how many times they appear. Then it selects the maximum number of races across all
+#the jockeys. The HAVING function
+#filters the results to only include the jockey(s) whose race count is equal to the
+#maximum race count. Finally
+#the outermost query returns the name(s) of the jockey(s) who participated in the
+#most races.
+SELECT jockey, COUNT(*) AS race_count
+FROM horse_race
+GROUP BY jockey
+HAVING COUNT(*) = (
+SELECT MAX(race_count)
+FROM (
+SELECT count(*) AS race_count
+FROM horse_race
+Group By jockey
+) AS jockey_subquery
+);
